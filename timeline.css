@@ -1,0 +1,9 @@
+*, body {
+  margin: 0;
+}
+
+#TL-refresh {
+  height: 32px;
+  width: 32px;
+  background-image: url("images/refresh.png");
+}

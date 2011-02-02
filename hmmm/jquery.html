@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+  <head>
+    <script type="text/javascript"
+      src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+  </head>
+  <body>
+    <h3>Test</h3>
+    <div id="content">Some content here</div>
+    <div id="morecontent">More content here</div>
+    <button id="button">Load content</button>
+    <button id="morebutton">Load more content</button>
+    <script>
+      $("#button").click(function() {
+        $.ajax({
+          url: 'index.php',
+          success: function(response) {
+            $('#content').html(response);
+          }
+        });
+      });
+      $("#morebutton").click(function() {
+        $("#morecontent").load("index.php");
+      });
+    </script>
+

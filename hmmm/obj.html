@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+  <head>
+    <script type="text/javascript">
+      function fruit(name) {
+        this.name = name;
+      }
+      fruit.prototype.getName = function() {
+        return this.name;
+      }
+      var f = new fruit('apple');
+    </script>
+  </head>
+  <body>
+    <div id="content"></div>
+    <script type="text/javascript">
+      document.getElementById('content').innerText = f.name + f.getName();
+    </script>
+  </body>
+</html>

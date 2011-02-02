@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Your personal timeline</title>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+		<script type="text/javascript" src="http://connect.facebook.net/en_US/all.js"></script>
+		<script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22annotatedtimeline%22%5D%7D%5D%7D&key=ABQIAAAAD_1FNSLZK7Z4BwQCulzpQxSk4I5qxyZ418Q40tOktCta4U2QJBTnyLR4ZznUnF2iC926uc77XbObmQ"></script>
+		<script type="text/javascript" src="timeline.js"></script>
+	</head>
+	<body>
+		<div id="fb-root" />
+		<div id="TL-main-content">
+			<div id="TL-main-container">
+				<div id="TL-status-container">
+					<p id="TL-status">Loading...</p>
+				</div>
+				<div id="TL-login" style="display: none;">
+					<button id="TL-login-button">Login to Facebook</button>
+				</div>
+				<div id="TL-timeline-container" style="display: none;">
+					<p>Timeline container</p>
+					<div id="TL-timeline" style='width: 700px; height: 240px;'></div>
+					<div id="TL-waitstate">
+						<p>waitstate</p>
+					</div>
+				</div>
+				<div id="TL-refresh-container">
+					<button id="TL-refresh"></button>
+				</div>
+				<div id="TL-debug"></div>
+			</div>
+			<div id="placeholder" />
+		</div>
+	</body>
+</html>
