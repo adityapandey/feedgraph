@@ -4,6 +4,7 @@ $(document).ready(function() {
 });
 
 var HOURS_PER_DAY = 24;
+var MAX_WORD_LENGTH = 20;
 
 var debugOutput = function(obj) {
   var retval = '';
@@ -11,6 +12,112 @@ var debugOutput = function(obj) {
     retval += '<tr><th>' + key + '</th><td>' + obj[key] + '</td></tr>';
   }
   return retval;
+}
+
+var TimelineData = function() {
+  this.msgCount = 0;
+  this.commentCount = 0;
+  this.wordsToLev = {};
+
+  var self = this;
+
+  this.addData = function(data) {
+    self.addDataInternal(data, 'message');
+  }
+
+  this.addDataInternal = function(data, type) {
+    if (type == 'message') {
+      self.msgCount++;
+    } else if (type == 'comment') {
+      self.commentCount++;
+    }
+    if (data.message) {
+      var words = data.message.split(' ');
+      for (var i = 0; i < words.length; ++i) {
+        if (words[i].length < MAX_WORD_LENGTH) {
+          self.addWord(words[i].toLowerCase().replace(/[^a-z0-9]+/g, ''));
+        }
+      }
+      if (data.comments) {
+        var comments = data.comments.data;
+        for (var i = 0; i < comments.length; ++i) {
+          self.addDataInternal(comments[i], 'comment');
+        }
+      }
+    }
+  }
+
+  this.addWord = function(newWord) {
+    var newWordLev = 0;
+    for (var word in self.wordsToLev) {
+      var lev = self.levenshtein(word, newWord);
+      self.wordsToLev[word] += lev;
+      newWordLev += lev;
+    }
+    if (!(newWord in self.wordsToLev)) {
+      self.wordsToLev[newWord] = newWordLev;
+    }
+  }
+
+  this.getTopWords = function(n) {
+    var tempArr = [];
+    for (var word in self.wordsToLev) {
+      tempArr.push([word, self.wordsToLev[word]]);
+    }
+    tempArr.sort(function() {return arguments[0][1] < arguments[1][1];});
+    var retval = [];
+    for (var i = 0; i < n; ++i) {
+      if (tempArr && tempArr[i] && tempArr[i][0]) {
+        retval.push(tempArr[i][0]);
+      }
+    }
+    return retval;
+  }
+
+  this.levenshtein = function(a, b) {
+    // From http://snippets.dzone.com/posts/show/6942i
+    var i;
+  	var j;
+	  var cost;
+    var d = new Array();
+
+    if ( a.length == 0 ) {
+      return b.length;
+    }
+
+    if ( b.length == 0 ) {
+      return a.length;
+    }
+
+    for (i = 0; i <= a.length; i++) {
+      d[i] = new Array();
+      d[i][0] = i;
+    }
+
+    for (j = 0; j <= b.length; j++) {
+      d[0][j] = j;
+    }
+
+    for (i = 1; i <= a.length; i++) {
+      for (j = 1; j <= b.length; j++) {
+        if (a.charAt(i - 1) == b.charAt(j - 1)) {
+          cost = 0;
+        } else {
+          cost = 1;
+        }
+        d[i][j] = Math.min(d[i - 1][j] + 1,
+                           d[i][j - 1] + 1,
+                           d[i - 1][j - 1] + cost);
+        if(i > 1 && j > 1 &&
+           a.charAt(i - 1) == b.charAt(j-2) &&
+           a.charAt(i-2) == b.charAt(j-1)) {
+          d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + cost);
+        }
+      }
+    }
+    return d[a.length][b.length];
+  }
+
 }
   
 var Feedgraph = function() {
@@ -23,66 +130,6 @@ var Feedgraph = function() {
   }
 
   var self = this;
-
-  this.levenstein = function(a, b) {
-var i;
-	var j;
-	var cost;
-	var d = new Array();
- 
-	if ( a.length == 0 )
-	{
-		return b.length;
-	}
- 
-	if ( b.length == 0 )
-	{
-		return a.length;
-	}
- 
-	for ( i = 0; i <= a.length; i++ )
-	{
-		d[ i ] = new Array();
-		d[ i ][ 0 ] = i;
-	}
- 
-	for ( j = 0; j <= b.length; j++ )
-	{
-		d[ 0 ][ j ] = j;
-	}
- 
-	for ( i = 1; i <= a.length; i++ )
-	{
-		for ( j = 1; j <= b.length; j++ )
-		{
-			if ( a.charAt( i - 1 ) == b.charAt( j - 1 ) )
-			{
-				cost = 0;
-			}
-			else
-			{
-				cost = 1;
-			}
- 
-			d[ i ][ j ] = Math.min( d[ i - 1 ][ j ] + 1, d[ i ][ j - 1 ] + 1, d[ i - 1 ][ j - 1 ] + cost );
-			
-			if(
-         i > 1 && 
-         j > 1 &&  
-         a.charAt(i - 1) == b.charAt(j-2) && 
-         a.charAt(i-2) == b.charAt(j-1)
-         ){
-          d[i][j] = Math.min(
-            d[i][j],
-            d[i - 2][j - 2] + cost
-          )
-         
-			}
-		}
-	}
- 
-	return d[ a.length ][ b.length ];
-}
 
   this.collectFeed = function(limit, until) {
     if (!self.timezoneDiffMsecs) {
@@ -114,11 +161,16 @@ var i;
     for (date in self.timelineData) {
       var d = date.split('-');
       rows.push([new Date(d[0], d[1], d[2], 0, 0, 0, 0),
-                self.timelineData[date]]);
+                self.timelineData[date].msgCount,
+                self.timelineData[date].getTopWords(3).join(', '),
+                self.timelineData[date].commentCount
+      ]);
     }
     var chartData = new google.visualization.DataTable();
     chartData.addColumn('date', 'Date');
-    chartData.addColumn('number', 'Posts');
+    chartData.addColumn('number', 'Messages');
+    chartData.addColumn('string', 'Keywords');
+    chartData.addColumn('number', 'Comments');
     chartData.addRows(rows);
     return chartData;
   }
@@ -163,17 +215,15 @@ var i;
         var yesterday = self.keyFromDate(
             new Date(date.valueOf() - ONE_DAY_MSECS));
         if (!self.timelineData[today]) {
-          self.timelineData[today] = 1;
+          self.timelineData[today] = new TimelineData();
           if (!self.timelineData[yesterday]) {
-            self.timelineData[yesterday] = 0;
+            self.timelineData[yesterday] = new TimelineData();
           }
           if (!self.timelineData[tomorrow]) {
-            self.timelineData[tomorrow] = 0;
+            self.timelineData[tomorrow] = new TimelineData();
           }
-        } else {
-          self.timelineData[today]++;
         }
-
+        self.timelineData[today].addData(feed.data[i]);
         self.hourlyData[date.getHours()]++;
       }
       
@@ -184,6 +234,7 @@ var i;
       } else {
         $('#TL-status').text(
             'Done collecting feed. ' + self.postCount + ' posts in all.');
+        $('#TL-refresh').click();
       }
     }
   }
@@ -223,7 +274,8 @@ var Application = function() {
   }
 
   this.onTLRefresh = function() {
-    self.timelineChart.draw(self.feedgraph.getTimelineChartData());
+    self.timelineChart.draw(self.feedgraph.getTimelineChartData(),
+                            {'displayAnnotations':true});
     self.barChart.draw(self.feedgraph.getBarChartData(),
         {'width':700, 'height':300, 'hAxis':{'title':'Hour'}});
   }
