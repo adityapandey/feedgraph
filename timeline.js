@@ -7,11 +7,11 @@ var HOURS_PER_DAY = 24;
 var MAX_WORD_LENGTH = 20;
 
 var debugOutput = function(obj) {
-  var retval = '';
+  var retval = '<table>';
   for (key in obj) {
     retval += '<tr><th>' + key + '</th><td>' + obj[key] + '</td></tr>';
   }
-  return retval;
+  return retval + '</table>';
 }
 
 var TimelineData = function() {
@@ -125,6 +125,7 @@ var Feedgraph = function() {
   this.timezoneDiffMsecs = null;
   this.timelineData = [];
   this.hourlyData = [];
+  this.lastUntil = null;
   for(var i = 0; i < HOURS_PER_DAY; ++i) {
     this.hourlyData[i] = 0;
   }
@@ -205,7 +206,7 @@ var Feedgraph = function() {
       $('#TL-status').html('Error occurred!' + debugOutput(feed.error));
     } else {
       self.postCount += feed.data.length;
-      for (i in feed.data) {
+      for (var i = 0; i < feed.data.length; ++i) {
         var date = self.dateFromFbDateString(feed.data[i].created_time);
 
         var today = self.keyFromDate(date);
@@ -230,13 +231,22 @@ var Feedgraph = function() {
       if (feed.paging) {
         var limit = self.getValueFromUri(feed.paging.next, 'limit');
         var until = self.getValueFromUri(feed.paging.next, 'until');
-        self.collectFeed(limit, until);
+        if (self.lastUntil != until) {
+          self.lastUntil = until;
+          self.collectFeed(limit, until);
+        } else {
+          self.doneCollectingFeed();
+        }
       } else {
-        $('#TL-status').text(
-            'Done collecting feed. ' + self.postCount + ' posts in all.');
-        $('#TL-refresh').click();
+        self.doneCollectingFeed();
       }
     }
+  }
+
+  this.doneCollectingFeed = function() {
+    $('#TL-status').text(
+        'Done collecting feed. ' + self.postCount + ' posts in all.');
+    $('#TL-refresh').click();
   }
 
   this.dateFromFbDateString = function(fb_date_string) {
@@ -264,7 +274,6 @@ var Application = function() {
   var self = this;
 
   this.start = function() {
-    $('#TL-debug').hide();
     self.feedgraph = new Feedgraph();
     $('#TL-refresh').click(self.onTLRefresh);
     $('#TL-refresh').attr('disabled', 'disabled');

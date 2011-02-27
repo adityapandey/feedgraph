@@ -7,3 +7,7 @@
   width: 32px;
   background-image: url("images/refresh.png");
 }
+
+#TL-debug {
+  display: none;
+}
